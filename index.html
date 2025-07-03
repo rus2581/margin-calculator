@@ -9,11 +9,16 @@
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: #0e1217;
     color: #cfd8dc;
+    margin: 40px 20px;
+    user-select: none;
+  }
+  .container {
     max-width: 900px;
-    margin: 40px auto;
+    margin: 0 auto;
     padding: 20px 25px 40px 25px;
     border-radius: 12px;
-    user-select: none;
+    background: #0e1217;
+    overflow-x: auto; /* горизонтальный скролл при переполнении */
   }
   h2 {
     text-align: center;
@@ -24,22 +29,22 @@
   }
   form {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 30px;
-    margin-bottom: 40px;
+    justify-content: space-between;
     align-items: flex-end;
+    gap: 15px;
+    width: 100%;
+    flex-wrap: nowrap;
+    margin-bottom: 40px;
   }
   label {
-    flex: 1 1 220px;
     display: flex;
     flex-direction: column;
     font-weight: 600;
     color: #45a29e;
+    width: 23%;
   }
   input[type="number"], select {
     padding: 12px 16px;
-    margin-top: 8px;
     border-radius: 8px;
     border: 2px solid #1f2833;
     background: #1f2833;
@@ -54,7 +59,7 @@
     background: #0b0f12;
   }
   button {
-    padding: 14px 38px;
+    padding: 14px 0;
     font-weight: 700;
     font-size: 1.2rem;
     color: #0b0f12;
@@ -64,6 +69,8 @@
     cursor: pointer;
     transition: background-color 0.25s ease;
     box-shadow: 0 0 12px #45a29e;
+    width: 23%;
+    height: 48px;
   }
   button:hover {
     background: #66fcf1;
@@ -74,10 +81,12 @@
     width: 100%;
     border-collapse: collapse;
     border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 0 30px #45a29e;
     background: #1f2833;
     user-select: text;
+    box-shadow: 0 0 30px #45a29e;
+    max-width: 100%;
+    /* Убираем table-layout: fixed; чтобы не обрезать содержимое */
+    overflow: auto;
   }
   thead {
     background: linear-gradient(90deg, #45a29e, #66fcf1);
@@ -86,11 +95,12 @@
     font-size: 1rem;
   }
   th, td {
-    padding: 14px 16px;
+    padding: 10px 12px;
     text-align: center;
-    font-size: 1rem;
+    font-size: 0.85rem;
     border-right: 1px solid #0b0f12;
-    white-space: nowrap;
+    white-space: normal; /* разрешаем перенос текста */
+    word-wrap: break-word; /* перенос слов */
   }
   th:last-child, td:last-child {
     border-right: none;
@@ -129,6 +139,11 @@
     }
     button {
       width: 100%;
+      height: auto;
+      padding: 14px 0;
+    }
+    label {
+      width: 100%;
     }
     th, td {
       font-size: 0.9rem;
@@ -139,42 +154,44 @@
 </head>
 <body>
 
-<h2>Калькулятор изолированной маржи и плеча</h2>
+<div class="container">
+  <h2>Калькулятор изолированной маржи и плеча</h2>
 
-<form id="inputForm" autocomplete="off" spellcheck="false">
-  <label>
-    Депозит (USDT):
-    <input type="number" id="deposit" value="10000" min="1" step="any" required />
-  </label>
-  <label>
-    Цена входа (например, 3000):
-    <input type="number" id="entryPrice" value="3000" min="0.0001" step="any" required />
-  </label>
-  <label>
-    Направление позиции:
-    <select id="positionSide">
-      <option value="long" selected>Лонг</option>
-      <option value="short">Шорт</option>
-    </select>
-  </label>
-  <button type="submit">Рассчитать</button>
-</form>
+  <form id="inputForm" autocomplete="off" spellcheck="false">
+    <label>
+      Депозит (USDT):
+      <input type="number" id="deposit" value="10000" min="1" step="any" required />
+    </label>
+    <label>
+      Цена входа:
+      <input type="number" id="entryPrice" value="3000" min="0.0001" step="any" required />
+    </label>
+    <label>
+      Направление позиции:
+      <select id="positionSide">
+        <option value="long" selected>Лонг</option>
+        <option value="short">Шорт</option>
+      </select>
+    </label>
+    <button type="submit">Рассчитать</button>
+  </form>
 
-<table id="resultTable" style="display:none;">
-  <thead>
-    <tr>
-      <th>№</th>
-      <th>Доля входа</th>
-      <th>Вход (%)</th>
-      <th>Маржа (USDT)</th>
-      <th>Плечо</th>
-      <th>Объём позиции (USDT)</th>
-      <th>Стоп-лосс до ликв. (%)</th>
-      <th>Стоп-лосс цена</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+  <table id="resultTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>№</th>
+        <th>Доля входа</th>
+        <th>Вход (%)</th>
+        <th>Маржа (USDT)</th>
+        <th>Плечо</th>
+        <th>Объём позиции (USDT)</th>
+        <th>Стоп-лосс до ликв. (%)</th>
+        <th>Стоп-лосс цена</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
 
 <script>
   const form = document.getElementById('inputForm');
@@ -210,8 +227,6 @@
       const positionSize = margin * leverage;
       const stopLossPercent = (100 / leverage).toFixed(2);
 
-      // Для лонга: стоп-лосс ниже входа
-      // Для шорта: стоп-лосс выше входа
       let stopLossPrice;
       if (positionSide === 'long') {
         stopLossPrice = entryPrice * (1 - stopLossPercent / 100);
@@ -243,7 +258,6 @@
     calculateTable();
   });
 
-  // Пересчитать при смене направления позиции
   positionSideSelect.addEventListener('change', () => {
     if (table.style.display === 'table') {
       calculateTable();
