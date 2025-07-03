@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Калькулятор изолированной маржи и плеча</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #0e1217;
+    color: #cfd8dc;
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 20px 25px 40px 25px;
+    border-radius: 12px;
+    user-select: none;
+  }
+  h2 {
+    text-align: center;
+    color: #66fcf1;
+    font-weight: 700;
+    margin-bottom: 30px;
+    text-shadow: 0 0 8px #45a29e;
+  }
+  form {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 40px;
+    align-items: flex-end;
+  }
+  label {
+    flex: 1 1 220px;
+    display: flex;
+    flex-direction: column;
+    font-weight: 600;
+    color: #45a29e;
+  }
+  input[type="number"], select {
+    padding: 12px 16px;
+    margin-top: 8px;
+    border-radius: 8px;
+    border: 2px solid #1f2833;
+    background: #1f2833;
+    color: #c5c6c7;
+    font-size: 1.1rem;
+    transition: border-color 0.3s ease;
+  }
+  input[type="number"]:focus, select:focus {
+    outline: none;
+    border-color: #66fcf1;
+    box-shadow: 0 0 12px #66fcf1;
+    background: #0b0f12;
+  }
+  button {
+    padding: 14px 38px;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #0b0f12;
+    background: #45a29e;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background-color 0.25s ease;
+    box-shadow: 0 0 12px #45a29e;
+  }
+  button:hover {
+    background: #66fcf1;
+    color: #0e1217;
+    box-shadow: 0 0 18px #66fcf1;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 0 30px #45a29e;
+    background: #1f2833;
+    user-select: text;
+  }
+  thead {
+    background: linear-gradient(90deg, #45a29e, #66fcf1);
+    color: #0e1217;
+    font-weight: 700;
+    font-size: 1rem;
+  }
+  th, td {
+    padding: 14px 16px;
+    text-align: center;
+    font-size: 1rem;
+    border-right: 1px solid #0b0f12;
+    white-space: nowrap;
+  }
+  th:last-child, td:last-child {
+    border-right: none;
+  }
+  tbody tr {
+    color: #c5c6c7;
+    transition: background-color 0.3s ease;
+    cursor: default;
+  }
+  tbody tr:nth-child(even) {
+    background: #141a21;
+  }
+  tbody tr:hover {
+    background: #0b0f12;
+    color: #66fcf1;
+  }
+  td:nth-child(4),
+  td:nth-child(6) {
+    font-weight: 700;
+    color: #45a29e;
+  }
+  td:nth-child(5) {
+    font-weight: 700;
+    color: #f39c12;
+  }
+  td:nth-child(7),
+  td:nth-child(8) {
+    font-weight: 700;
+    color: #e74c3c;
+  }
+  @media (max-width: 700px) {
+    form {
+      flex-direction: column;
+      gap: 20px;
+      align-items: stretch;
+    }
+    button {
+      width: 100%;
+    }
+    th, td {
+      font-size: 0.9rem;
+      padding: 10px 8px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<h2>Калькулятор изолированной маржи и плеча</h2>
+
+<form id="inputForm" autocomplete="off" spellcheck="false">
+  <label>
+    Депозит (USDT):
+    <input type="number" id="deposit" value="10000" min="1" step="any" required />
+  </label>
+  <label>
+    Цена входа (например, 3000):
+    <input type="number" id="entryPrice" value="3000" min="0.0001" step="any" required />
+  </label>
+  <label>
+    Направление позиции:
+    <select id="positionSide">
+      <option value="long" selected>Лонг</option>
+      <option value="short">Шорт</option>
+    </select>
+  </label>
+  <button type="submit">Рассчитать</button>
+</form>
+
+<table id="resultTable" style="display:none;">
+  <thead>
+    <tr>
+      <th>№</th>
+      <th>Доля входа</th>
+      <th>Вход (%)</th>
+      <th>Маржа (USDT)</th>
+      <th>Плечо</th>
+      <th>Объём позиции (USDT)</th>
+      <th>Стоп-лосс до ликв. (%)</th>
+      <th>Стоп-лосс цена</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  const form = document.getElementById('inputForm');
+  const table = document.getElementById('resultTable');
+  const tbody = table.querySelector('tbody');
+  const positionSideSelect = document.getElementById('positionSide');
+
+  function formatNumber(num, decimals = 2) {
+    return num.toLocaleString('ru-RU', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  }
+
+  function formatPrice(num) {
+    return num.toLocaleString('ru-RU', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+  }
+
+  function calculateTable() {
+    const deposit = parseFloat(document.getElementById('deposit').value);
+    const entryPrice = parseFloat(document.getElementById('entryPrice').value);
+    const positionSide = positionSideSelect.value;
+
+    if (deposit <= 0 || entryPrice <= 0) {
+      alert('Введите корректные значения депозита и цены входа.');
+      return;
+    }
+
+    tbody.innerHTML = '';
+
+    for (let i = 1; i <= 10; i++) {
+      const fraction = 1 / i;
+      const fractionPercent = (fraction * 100).toFixed(2);
+      const margin = deposit * fraction;
+      const leverage = i;
+      const positionSize = margin * leverage;
+      const stopLossPercent = (100 / leverage).toFixed(2);
+
+      // Для лонга: стоп-лосс ниже входа
+      // Для шорта: стоп-лосс выше входа
+      let stopLossPrice;
+      if (positionSide === 'long') {
+        stopLossPrice = entryPrice * (1 - stopLossPercent / 100);
+      } else {
+        stopLossPrice = entryPrice * (1 + stopLossPercent / 100);
+      }
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${i}</td>
+        <td>1/${i}</td>
+        <td>${fractionPercent}%</td>
+        <td>${formatNumber(margin)}</td>
+        <td>${leverage}x</td>
+        <td>${formatNumber(positionSize)}</td>
+        <td>${stopLossPercent}%</td>
+        <td>${formatPrice(stopLossPrice)}</td>
+      `;
+
+      tbody.appendChild(tr);
+    }
+
+    table.style.display = 'table';
+    table.scrollIntoView({behavior: "smooth"});
+  }
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    calculateTable();
+  });
+
+  // Пересчитать при смене направления позиции
+  positionSideSelect.addEventListener('change', () => {
+    if (table.style.display === 'table') {
+      calculateTable();
+    }
+  });
+</script>
+
+</body>
+</html>
